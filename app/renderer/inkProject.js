@@ -20,6 +20,7 @@ const LiveCompiler = require("./liveCompiler.js").LiveCompiler;
 
 InkProject.events = {};
 InkProject.currentProject = null;
+InkProject.quickJsonExportPath = null;
 
 // mainInkFilePath is optional, if creating a brand new untitled project
 // Can also be absolute, if loading a project.
@@ -329,6 +330,52 @@ InkProject.prototype.export = function(exportType) {
     // Always start by building the JSON
     var inkJsCompatible = exportType == "js" || exportType == "web";
     LiveCompiler.exportJson(inkJsCompatible, (err, compiledJsonTempPath) => {
+
+        function exportToSavePath(targetSavePath) {
+            this.defaultExportPath = targetSavePath;
+
+            // JSON export - simply move compiled json into place
+            if (exportType == "json" || exportType == "js") {
+                fs.stat(targetSavePath, (err, stats) => {
+
+                    // File already exists, or there's another error
+                    // (error when code == ENOENT means file doens't exist, which is fine)
+                    if (!err || err.code != "ENOENT") {
+                        if (err)
+                            alert(`${i18n._("Sorry, could not save to")} ${targetSavePath}`);
+
+                        if (stats.isFile())
+                            fs.unlinkSync(targetSavePath);
+
+                        if (stats.isDirectory()) {
+                            alert(i18n._("Could not save because directory exists with the given name"));
+                            return;
+                        }
+                    }
+
+                    // JS file: 
+                    if (exportType == "js") {
+                        this.convertJSONToJS(compiledJsonTempPath, targetSavePath);
+                    }
+
+
+                    // JSON: Just copy into place
+                    else {
+                        copyFile(compiledJsonTempPath, targetSavePath);
+                    }
+
+                });
+            }
+
+
+            // Web export
+            else {
+                this.buildForWeb(compiledJsonTempPath, targetSavePath);
+            }
+
+            return targetSavePath;
+        }
+
         if( err ) {
             alert(`${i18n._("Could not export:")} ${err}`);
             return;
@@ -371,46 +418,22 @@ InkProject.prototype.export = function(exportType) {
             ]
         }
 
-        dialog.showSaveDialog(remote.getCurrentWindow(), saveOptions, (targetSavePath) => {
-            if( targetSavePath ) { 
-                this.defaultExportPath = targetSavePath;
+        console.log("HERE")
+        console.log(this)
+        console.log(this.quickJsonExportPath)
 
-                // JSON export - simply move compiled json into place
-                if( exportType == "json" || exportType == "js" ) {
-                    fs.stat(targetSavePath, (err, stats) => {
-
-                        // File already exists, or there's another error
-                        // (error when code == ENOENT means file doens't exist, which is fine)
-                        if( !err || err.code != "ENOENT" ) {
-                            if( err ) alert(`${i18n._("Sorry, could not save to")} ${targetSavePath}`);
-
-                            if( stats.isFile() ) fs.unlinkSync(targetSavePath);
-
-                            if( stats.isDirectory() ) {
-                                alert(i18n._("Could not save because directory exists with the given name"));
-                                return
-                            }
-                        }
-
-                        // JS file: 
-                        if( exportType == "js" ) {
-                            this.convertJSONToJS(compiledJsonTempPath, targetSavePath);
-                        } 
-
-                        // JSON: Just copy into place
-                        else {
-                            copyFile(compiledJsonTempPath, targetSavePath);
-                        }
-
-                    });
+        if (this.quickJsonExportPath && exportType == "json") {
+            exportToSavePath(this.quickJsonExportPath)
+        } else {
+            dialog.showSaveDialog(remote.getCurrentWindow(), saveOptions, (targetSavePath) => {
+                if( targetSavePath ) { 
+                    var result = exportToSavePath(targetSavePath);
+                    if (exportType == "json") {
+                        this.quickJsonExportPath = result
+                    }
                 }
-
-                // Web export
-                else {
-                    this.buildForWeb(compiledJsonTempPath, targetSavePath);
-                }
-            }
-        });
+            });
+        }
     });
 }
 
