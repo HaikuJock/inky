@@ -4,6 +4,19 @@
 
 **Inky** is an editor for [ink](http://www.inklestudios.com/ink), inkle's markup language for writing interactive narrative in games, as used in [80 Days](http://www.inklestudios.com/80days). It's an IDE (integrated development environment), because it gives you a single app that lets you play in the editor as you write, and fix any bugs in your code.
 
+## The HaikuJock, Easy-Export branch
+
+* Exporting again automatically exports to the last exported file without navigating the Save File dialog. 
+* Each window has its own export file.
+
+### Known Issues
+* There's no way to export to a different file after the first.
+
+### Further Work
+* Write tests around it
+* Enable 'Export to <filename>' and 'Export to...'
+* Adopt idiomatic key-combinations for export e.g. Ctrl+E to 'Export to <filename>', Ctrl+Shift+E to 'Export to...'
+
 ![](resources/screenshot.gif)
 
 ## Features
